@@ -19,6 +19,16 @@ class MoodAnalyzer:
     A very simple, rule based mood classifier.
     """
 
+    # Words that flip the sign of the sentiment word right after them.
+    NEGATIONS = {
+        "not", "never", "no", "dont", "don't", "isnt", "isn't", "cant",
+        "can't", "wont", "won't", "didnt", "didn't", "wasnt", "wasn't",
+        "cannot", "hardly",
+    }
+    # Emojis and slang treated as strong signals (weight 2).
+    STRONG_POSITIVE = {":)", ":-)", ":d", "=)", ";)", "😂", "😊", "😍", "🎉", "❤", "lol"}
+    STRONG_NEGATIVE = {":(", ":-(", "=(", "😭", "🥲", "😞", "😡", "💀", "ugh", "smh"}
+
     def __init__(
         self,
         positive_words: Optional[List[str]] = None,
@@ -52,14 +62,63 @@ class MoodAnalyzer:
           - Handle simple emojis separately (":)", ":-(", "🥲", "😂")
           - Normalize repeated characters ("soooo" -> "soo")
         """
+        import re
+
         cleaned = text.strip().lower()
-        tokens = cleaned.split()
+
+        # Normalize repeated letters: "soooo" -> "soo"
+        cleaned = re.sub(r"([a-z])\1{2,}", r"\1\1", cleaned)
+
+        # Keep emoticons (":)", ":-(") and emojis as tokens; drop other
+        # punctuation. Words may contain inner apostrophes ("don't").
+        token_pattern = (
+            r"(?<!\w)[:;=][-^']?[)(DPp/\\|](?!\w)"
+            r"|[\U0001F300-\U0001FAFF☀-➿]"
+            r"|[a-z0-9]+(?:'[a-z]+)*"
+        )
+        tokens = re.findall(token_pattern, cleaned)
 
         return tokens
 
     # ---------------------------------------------------------------------
     # Scoring logic
     # ---------------------------------------------------------------------
+
+    def _analyze(self, text: str) -> Tuple[int, List[str], List[str]]:
+        """
+        Shared scoring pass used by score_text() and explain().
+
+        Returns (score, positive_hits, negative_hits). A negated hit is
+        recorded as the pair, e.g. "not happy" counts as a negative hit.
+        """
+        tokens = self.preprocess(text)
+
+        positive_hits: List[str] = []
+        negative_hits: List[str] = []
+        score = 0
+
+        for i, token in enumerate(tokens):
+            if token in self.STRONG_POSITIVE:
+                value = 2
+            elif token in self.STRONG_NEGATIVE:
+                value = -2
+            elif token in self.positive_words:
+                value = 1
+            elif token in self.negative_words:
+                value = -1
+            else:
+                continue
+
+            label = token
+            # Negation: flip the sign if the previous token is a negation word.
+            if i > 0 and tokens[i - 1] in self.NEGATIONS:
+                value = -value
+                label = f"{tokens[i - 1]} {token}"
+
+            (positive_hits if value > 0 else negative_hits).append(label)
+            score += value
+
+        return score, positive_hits, negative_hits
 
     def score_text(self, text: str) -> int:
         """
@@ -83,7 +142,8 @@ class MoodAnalyzer:
         #
         # Hint: if you implement negation, you may want to look at pairs of tokens,
         # like ("not", "happy") or ("never", "fun").
-        pass
+        score, _, _ = self._analyze(text)
+        return score
 
     # ---------------------------------------------------------------------
     # Label prediction
@@ -110,7 +170,13 @@ class MoodAnalyzer:
         #   2. Return "positive" if the score is above 0.
         #   3. Return "negative" if the score is below 0.
         #   4. Return "neutral" otherwise.
-        pass
+        score = self.score_text(text)
+
+        if score > 0:
+            return "positive"
+        if score < 0:
+            return "negative"
+        return "neutral"
 
     # ---------------------------------------------------------------------
     # Explanations (optional but recommended)
@@ -132,22 +198,10 @@ class MoodAnalyzer:
         The current implementation is a placeholder so the code runs even
         before you implement it.
         """
-        tokens = self.preprocess(text)
-
-        positive_hits: List[str] = []
-        negative_hits: List[str] = []
-        score = 0
-
-        for token in tokens:
-            if token in self.positive_words:
-                positive_hits.append(token)
-                score += 1
-            if token in self.negative_words:
-                negative_hits.append(token)
-                score -= 1
+        score, positive_hits, negative_hits = self._analyze(text)
 
         return (
             f"Score = {score} "
-            f"(positive: {positive_hits or '[]'}, "
-            f"negative: {negative_hits or '[]'})"
+            f"(positive: {positive_hits}; negative: {negative_hits}) "
+            f"-> {self.predict_label(text)}"
         )
