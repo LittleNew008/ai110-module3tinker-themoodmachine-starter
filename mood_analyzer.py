@@ -23,7 +23,7 @@ class MoodAnalyzer:
     NEGATIONS = {
         "not", "never", "no", "dont", "don't", "isnt", "isn't", "cant",
         "can't", "wont", "won't", "didnt", "didn't", "wasnt", "wasn't",
-        "cannot", "hardly",
+        "cannot", "hardly", "ain't", "aint",
     }
     # Emojis and slang treated as strong signals (weight 2).
     STRONG_POSITIVE = {":)", ":-)", ":d", "=)", ";)", "😂", "😊", "😍", "🎉", "❤", "lol"}
