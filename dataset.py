@@ -67,7 +67,32 @@ TRUE_LABELS = [
     "negative",  # "I am not happy about this"
 ]
 
-# TODO: Add 5-10 more posts and labels.
+# Additional posts covering slang, emojis, sarcasm, and mixed feelings.
+SAMPLE_POSTS.extend([
+    "Lowkey stressed but kind of proud of myself",
+    "I absolutely love getting stuck in traffic",   # sarcasm
+    "no cap this was the best concert ever 😂",
+    "Failed my exam 🥲",
+    "Just got home, about to eat dinner",
+    "highkey excited but also kinda nervous :)",
+    "ugh Mondays 💀",
+    "My friends threw me a surprise party, I'm so happy :)",
+])
+
+TRUE_LABELS.extend([
+    "mixed",     # "Lowkey stressed but kind of proud of myself"
+    "negative",  # "I absolutely love getting stuck in traffic" (sarcasm)
+    "positive",  # "no cap this was the best concert ever 😂"
+    "negative",  # "Failed my exam 🥲"
+    "neutral",   # "Just got home, about to eat dinner"
+    "mixed",     # "highkey excited but also kinda nervous :)"
+    "negative",  # "ugh Mondays 💀"
+    "positive",  # "My friends threw me a surprise party, I'm so happy :)"
+])
+
+assert len(SAMPLE_POSTS) == len(TRUE_LABELS)
+
+# Original instructions (kept for reference):
 #
 # Requirements:
 #   - For every new post you add to SAMPLE_POSTS, you must add one
